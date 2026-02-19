@@ -1,5 +1,6 @@
 from typing import Any, List, Dict, Union, Optional
 from abc import ABC, abstractmethod
+import sys
 
 class DataStream(ABC):
 
@@ -7,11 +8,11 @@ class DataStream(ABC):
     def process_batch(self, data_batch: List[Any]) -> str:
         pass
 
-    @abstractmethod
     def filter_data(
-        self, data_batch: List[Any],criteria: Optional[str] = None
+        self, data_batch: List[Any], criteria: Optional[str] = None
         )-> List[Any]:
-        pass
+        self.filtered_list = []
+        return self.filtered_list
 
     def get_stats(self) -> Dict[str, Union[str, int, float]]:
         self.dictio = {}
@@ -27,7 +28,9 @@ class DataStream(ABC):
                     words = element.split(':')
                     if not isinstance(words[0], str):
                         return False
-                    float(words[1])
+                    if (float(words[1]) > sys.maxsize or
+                        float(words[1]) < -sys.maxsize):
+                        return False
             else:
                 return False
         except ValueError:
@@ -52,15 +55,18 @@ class SensorStream(DataStream):
     def filter_data(
         self, data_batch: List[Any], criteria: Optional[str] = None
         )-> List[Any]:
+        super().filter_data(data_batch)
         if criteria is None:
             return data_batch
         for element in data_batch:
             words = element.split(':')
-            if words[0] == "temp":
-                self.temp = int(words[1])
-            if words[0] == criteria:
-                data_batch.remove(element)
-        return data_batch
+            if words[0] == "temp" and int(words[1]) > 50:
+                self.filtered_list.append(element)
+            if words[0] == "humidity" and int(words[1]) > 80:
+                self.filtered_list.append(element)
+            if words[0] == "pressure" and int(words[1]) > 600:
+                self.filtered_list.append(element)
+        return self.filtered_list
 
     def get_stats(self) -> Dict[str, Union[str, int, float]]:
         super().get_stats()
@@ -90,6 +96,7 @@ class EventStream(DataStream):
     def filter_data(
         self, data_batch: List[Any], criteria: Optional[str] = None
         )-> List[Any]:
+        super().filter_data(data_batch)
         if criteria is None:
             criteria = 'error'
         for element in data_batch:
@@ -117,8 +124,6 @@ class EventStream(DataStream):
 
 
 
-
-
 if __name__ == "__main__":
     data = ['temp:22.5', 'humidity:65', 'pressure:1013']
     print("=== CODE NEXUS - DATA PROCESSOR FOUNDATION ===")
@@ -126,7 +131,11 @@ if __name__ == "__main__":
     print(f"Processing sensor batch: {stream.process_batch(data)}")
     dictio = stream.get_stats()
     print(f"Sensor analysis: {len(dictio)}"
-          f" readings processed, avg temp: {dictio['temp']}")
+          " readings processed, avg temp: "
+          f"{dictio.get('temp', 'No temp in entry')}")
 
-    data = ['temp:22.5', 'humidity:65', 'pressure:1013']
+    data = ["login", "error", "logout"]
     stream = EventStream("EVENT_001")
+    print(f"Processing event batch: {stream.process_batch(data)}")
+    dictio = stream.get_stats()
+    print(dictio)
