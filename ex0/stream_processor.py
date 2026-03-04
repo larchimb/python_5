@@ -1,6 +1,7 @@
 from typing import Any
 from abc import ABC, abstractmethod
 
+
 class DataProcessor(ABC):
     @abstractmethod
     def process(self, data: Any) -> str:
@@ -11,13 +12,12 @@ class DataProcessor(ABC):
         pass
 
     def format_output(self, result: str) -> str:
-        return(f"Output: {result}")
+        return (f"Output: {result}")
 
 
 class NumericProcessor(DataProcessor):
     def __init__(self) -> None:
         print("\nInitializing Numeric Processor...")
-
 
     def process(self, data: Any) -> str:
         try:
@@ -34,7 +34,7 @@ class NumericProcessor(DataProcessor):
     def validate(self, data: Any) -> bool:
         if isinstance(data, list):
             for element in data:
-                if not type(element) == int:
+                if not isinstance(element, int):
                     return False
         else:
             return False
@@ -102,7 +102,7 @@ class LogProcessor(DataProcessor):
 
 
 if __name__ == "__main__":
-    data = [1, 2, 3, 4, 5]
+    data:Any = [1, 2, 3, 4, 5]
     print("=== CODE NEXUS - DATA PROCESSOR FOUNDATION ===\n")
     processor = NumericProcessor()
     print(f"Processing data: {data}")

@@ -2,6 +2,7 @@ from typing import Any, List, Dict, Union, Optional
 from abc import ABC, abstractmethod
 import sys
 
+
 class DataStream(ABC):
 
     @abstractmethod
@@ -12,28 +13,34 @@ class DataStream(ABC):
     def initialize(self) -> str:
         pass
 
+    @abstractmethod
+    def get_resume(self) -> str:
+        pass
+
     def filter_data(
         self, data_batch: List[Any], criteria: Optional[str] = None
-        )-> List[Any]:
-        self.filtered_list = []
+    ) -> List[Any]:
+        self.filtered_list: list[Any] = []
         return self.filtered_list
 
     def get_stats(self) -> Dict[str, Union[str, int, float]]:
-        self.dictio = {}
+        self.dictio: Dict[Any, Any] = {}
         return self.dictio
 
     def validate(self, data: Any) -> bool:
         try:
             if isinstance(data, list):
                 for element in data:
-                    check = len(element.split(':'))
+                    check = len(element.split(":"))
                     if not check == 2:
                         return False
-                    words = element.split(':')
+                    words = element.split(":")
                     if not isinstance(words[0], str):
                         return False
-                    if (float(words[1]) > sys.maxsize or
-                        float(words[1]) < -sys.maxsize):
+                    if (
+                        float(words[1]) > sys.maxsize
+                        or float(words[1]) < -sys.maxsize
+                    ):
                         return False
             else:
                 return False
@@ -49,24 +56,25 @@ class SensorStream(DataStream):
         self.type = "Environmental Data"
 
     def initialize(self) -> str:
-        print("\nInitializing Sensor Stream...\n"
-              f"Stream ID: {self.stream_id}, Type: {self.type}")
-        return f"Processing sensor batch:"
-
+        print(
+            "\nInitializing Sensor Stream...\n"
+            f"Stream ID: {self.stream_id}, Type: {self.type}"
+        )
+        return "Processing sensor batch:"
 
     def process_batch(self, data_batch: List[Any]) -> str:
         if not self.validate(data_batch):
             return "Datas must be parsed: [str:int, str:int, ...]"
         self.data_batch = data_batch
-        return (f"{data_batch}")
+        return f"{data_batch}"
 
     def filter_data(
         self, data_batch: List[Any], criteria: Optional[str] = None
-        )-> List[Any]:
+    ) -> List[Any]:
         super().filter_data(data_batch)
         if criteria == "high":
             for element in data_batch:
-                words = element.split(':')
+                words = element.split(":")
                 if words[0] == "temp" and int(words[1]) > 50:
                     self.filtered_list.append(element)
                 if words[0] == "humidity" and int(words[1]) > 80:
@@ -75,7 +83,7 @@ class SensorStream(DataStream):
                     self.filtered_list.append(element)
         elif criteria == "low":
             for element in data_batch:
-                words = element.split(':')
+                words = element.split(":")
                 if words[0] == "temp" and int(words[1]) < 0:
                     self.filtered_list.append(element)
                 if words[0] == "humidity" and int(words[1]) < 20:
@@ -83,6 +91,7 @@ class SensorStream(DataStream):
                 if words[0] == "pressure" and int(words[1]) < 500:
                     self.filtered_list.append(element)
         else:
+            print("Criteria must be 'high' or 'low'")
             return data_batch
         return self.filtered_list
 
@@ -90,7 +99,7 @@ class SensorStream(DataStream):
         super().get_stats()
         try:
             for element in self.data_batch:
-                parts = element.split(':')
+                parts = element.split(":")
                 self.dictio[parts[0]] = float(parts[1])
         except AttributeError as e:
             print(e)
@@ -98,9 +107,11 @@ class SensorStream(DataStream):
 
     def get_resume(self) -> str:
         try:
-            return(f"Sensor analysis: {len(self.dictio)}"
-          " readings processed, avg temp: "
-          f"{self.dictio.get('temp', 'No temp in entry')}")
+            return (
+                f"Sensor analysis: {len(self.dictio)}"
+                " readings processed, avg temp: "
+                f"{self.dictio.get('temp', 'No temp in entry')}"
+            )
         except Exception as e:
             return f"{e}"
 
@@ -112,25 +123,27 @@ class TransactionStream(DataStream):
         self.type = "Financial Data"
 
     def initialize(self) -> str:
-        print("\nInitializing Transaction Stream...\n"
-              f"Stream ID: {self.stream_id}, Type: {self.type}")
-        return f"Processing transactions batch:"
+        print(
+            "\nInitializing Transaction Stream...\n"
+            f"Stream ID: {self.stream_id}, Type: {self.type}"
+        )
+        return "Processing transactions batch:"
 
     def process_batch(self, data_batch: List[Any]) -> str:
         if not self.validate(data_batch):
             return "Datas must be parsed: [str:int, str:int, ...]"
         self.data_batch = data_batch
-        return (f"{data_batch}")
+        return f"{data_batch}"
 
-    def filter_data(
-        self, data_batch: List[Any], criteria: Optional[str] = None
-        )-> List[Any]:
+    def filter_data(self, data_batch: List[Any],
+                    criteria: Optional[str] = None) -> List[Any]:
         super().filter_data(data_batch)
         try:
             if criteria is None:
+                print("Criteria is empty")
                 return data_batch
             for element in data_batch:
-                words = element.split(':')
+                words = element.split(":")
                 if int(words[1]) > int(criteria):
                     self.filtered_list.append(element)
         except Exception as e:
@@ -141,17 +154,21 @@ class TransactionStream(DataStream):
         super().get_stats()
         try:
             for element in self.data_batch:
-                parts = element.split(':')
-                self.dictio[parts[0]] = self.dictio.get(parts[0], 0) + int(parts[1])
+                parts = element.split(":")
+                self.dictio[parts[0]] = self.dictio.get(parts[0], 0) + int(
+                    parts[1]
+                )
         except Exception as e:
             print(e)
         return self.dictio
 
     def get_resume(self) -> str:
         try:
-            total = self.dictio.get('buy', 0) - self.dictio.get('sell', 0)
-            return(f"Transaction analysis: {len(self.dictio)} events,"
-                  f" net flow: {str(total)} units")
+            total = self.dictio.get("buy", 0) - self.dictio.get("sell", 0)
+            return (
+                f"Transaction analysis: {len(self.dictio)} events,"
+                f" net flow: {str(total)} units"
+            )
         except Exception as e:
             return f"{e}"
 
@@ -160,9 +177,8 @@ class TransactionStream(DataStream):
             if super().validate(data) is False:
                 return False
             for element in data:
-                words = element.split(':')
-                if (int(words[1]) > sys.maxsize or
-                    int(words[1]) < -sys.maxsize):
+                words = element.split(":")
+                if int(words[1]) > sys.maxsize or int(words[1]) < -sys.maxsize:
                     return False
         except Exception:
             return False
@@ -176,21 +192,24 @@ class EventStream(DataStream):
         self.type = "System Events"
 
     def initialize(self) -> str:
-        print("\nInitializing Event Stream...\n"
-              f"Stream ID: {self.stream_id}, Type: {self.type}")
-        return f"Processing event batch:"
+        print(
+            "\nInitializing Event Stream...\n"
+            f"Stream ID: {self.stream_id}, Type: {self.type}"
+        )
+        return "Processing event batch:"
 
     def process_batch(self, data_batch: List[Any]) -> str:
         if not self.validate(data_batch):
             return "Datas must be parsed: [str, str, ...]"
         self.data_batch = data_batch
-        return (f"{data_batch}")
+        return f"{data_batch}"
 
     def filter_data(
         self, data_batch: List[Any], criteria: Optional[str] = None
-        )-> List[Any]:
+    ) -> List[Any]:
         super().filter_data(data_batch)
         if criteria is None:
+            print("Criteria is empty")
             return data_batch
         for element in data_batch:
             if element == criteria:
@@ -208,8 +227,10 @@ class EventStream(DataStream):
 
     def get_resume(self) -> str:
         try:
-            return(f"Event analysis: {len(self.data_batch)} events,"
-                   f" {self.dictio['error']} error detected")
+            return (
+                f"Event analysis: {len(self.data_batch)} events,"
+                f" {self.dictio['error']} error detected"
+            )
         except Exception as e:
             return f"{e}"
 
@@ -223,7 +244,7 @@ class EventStream(DataStream):
         return True
 
 
-class StreamProcessor():
+class StreamProcessor:
 
     def initialize(self, stream: DataStream) -> str:
         return stream.initialize()
@@ -231,8 +252,9 @@ class StreamProcessor():
     def run(self, stream: DataStream, batch: List[Any]) -> str:
         return stream.process_batch(batch)
 
-    def filter(self, stream: DataStream, batch: List[Any], criteria: str
-             ) -> List[Any]:
+    def filter(
+        self, stream: DataStream, batch: List[Any], criteria: str
+    ) -> List[Any]:
         return stream.filter_data(batch, criteria)
 
     def stats(self, stream: DataStream) -> Dict[str, Union[str, int, float]]:
@@ -242,22 +264,51 @@ class StreamProcessor():
 if __name__ == "__main__":
 
     print("=== CODE NEXUS - DATA PROCESSOR FOUNDATION ===")
+    sensor = SensorStream("SENSOR_001")
+    trans = TransactionStream("TRANS_001")
+    event = EventStream("EVENT_001")
+    print(f"{sensor.initialize()}"
+          f"{sensor.process_batch(['temp:4', 'humidity:40', 'pressure:987'])}")
+    sensor.get_stats()
+    print(sensor.get_resume())
+
+    print(f"{trans.initialize()}"
+          f"{trans.process_batch(['buy:100', 'sell:150', 'buy:75'])}")
+    trans.get_stats()
+    print(trans.get_resume())
+
+    print(f"{event.initialize()}"
+          f"{event.process_batch(['login', 'error', 'logout', 'error'])}")
+    event.get_stats()
+    print(event.get_resume())
+
+    print(
+        "\n=== Polymorphic Stream Processing ===\n"
+        "Processing mixed stream types through unified interface...\n"
+    )
     processor = StreamProcessor()
     datas = [
-        ['temp:22.5', 'humidity:65', 'pressure:1013'],
+        ["temp:65", "humidity:82", "pressure:1013"],
         ["buy:100", "sell:1500", "buy:75"],
-        ["login", "error", "logout", "error"]
-        ]
-    streams = [
-        SensorStream("SENSOR_001"),
-        TransactionStream("TRANS_001"),
-        EventStream("EVENT_001")
+        ["login", "error", "logout"],
     ]
+    streams = [
+        SensorStream("SENSOR_002"),
+        TransactionStream("TRANS_002"),
+        EventStream("EVENT_002"),
+    ]
+    stats_sensor = {}
+    print("Batch 1 Results:")
     i = 0
     for i in range(0, 3):
-        print(f"{processor.initialize(streams[i])} {processor.run(streams[i], datas[i])}")
+        processor.run(streams[i], datas[i])
         stats_sensor = processor.stats(streams[i])
-        print(streams[i].get_resume())
+        print(f"- {streams[i].get_resume()}")
 
-    print("\n=== Polymorphic Stream Processing ===\n"
-          "Processing mixed stream types through unified interface...\n")
+    print("\nStream filtering active: High-priority data only")
+    print("Filtered results: "
+          f"{len(processor.filter(streams[0], datas[0],'high'))} critical"
+          " sensor alerts, "
+          f"{len(processor.filter(streams[1], datas[1], '1000'))} "
+          "large transaction")
+    print("\nAll streams processed successfully. Nexus throughput optimal.")
